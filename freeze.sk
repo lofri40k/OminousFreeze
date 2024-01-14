@@ -1,0 +1,110 @@
+options:
+	p: "<##ddc3c3>Θmηious<##bcb5ff>Freeze <##898596>» <##bac4d9>"
+
+command /freeze [<text>] [<text>] [<text>]:
+	permission: freeze.command
+	trigger:
+		if arg-1 is not set:
+			send "%{@p}%&7Команды заморозки:"
+			send ""
+			send "&8> &7/freeze&6 toggle <##DD0000><игрок>&8 - &7Меняет режим заморозки игрока"
+			send ""
+			send "&8> &7/freeze&6 list&8 - &7Выводит всех замороженных игроков"
+			send ""
+			send "&8> &7/freeze&6 unfreezeall&8 - &7Размораживает всех игроков"
+			send ""
+			send "&8> &7/freeze&6 enable <##DD0000><игрок>&8 - &7Заморозить игрока"
+			send ""
+			send "&8> &7/freeze&6 disable <##DD0000><игрок>&8 - &7Разморозить игрока"
+		if arg-1 is "toggle":
+			if arg-2 is not set:
+				send "%{@p}%Использование: &6/freeze toggle <##DD0000><игрок>"
+				stop
+			set {_pl} to arg-2 parsed as player
+			if {frozen::%{_pl}%} is true:
+				set {frozen::%{_pl}%} to false
+				if player is {_pl}:
+					send "%{@p}%Вы разморозили себя!"
+				else:
+					send "%{@p}%Вы разморозили &6%{_pl}%&7!"
+				remove {_pl} from {fplayers::*} 
+			else:
+				set {frozen::%{_pl}%} to true
+				set {frozen.who.%{_pl}%} to player
+				if player is {_pl}:		
+					send "%{@p}%Вы заморозили себя!"
+				else:
+					send "%{@p}%Вы заморозили &6%{_pl}%&7!"
+				add {_pl} to {fplayers::*}
+                
+		if arg-1 is "disable":
+			set {_pl} to arg-2 parsed as player
+			if {frozen::%{_pl}%} is true:
+				set {frozen::%{_pl}%} to false
+				if player is {_pl}:
+					send "%{@p}%Вы разморозили себя!"
+				else:
+					send "%{@p}%Вы разморозили &6%{_pl}%&7!"
+				remove {_pl} from {fplayers::*} 
+			else:
+				send "%{@p}%Этот игрок не заморожен!"
+                
+		if arg-1 is "enable":
+			set {_pl} to arg-2 parsed as player
+			if {frozen::%{_pl}%} is true:
+				send "%{@p}%Этот игрок уже заморожен!"
+			else:
+				set {frozen::%{_pl}%} to true
+				set {frozen.who.%{_pl}%} to player
+				if player is {_pl}:		
+					send "%{@p}%Вы заморозили себя!"
+				else:
+					send "%{@p}%Вы заморозили &6%{_pl}%&7!"
+				add {_pl} to {fplayers::*}
+                
+		if arg-1 is "list":
+			if size of {fplayers::*} is 0:
+				send "%{@p}%Ни один игрок не заморожен!"
+			else:
+				send "%{@p}%Замороженные игроки:"
+				loop {fplayers::*}:
+					if {frozen.who.%loop-value%} is loop-value:
+						set {_text} to "сам себя"
+					else:
+						set {_text} to "&6%{frozen.who.%loop-value%}%"
+					send "&8> &6%loop-value% &7(заморозил %{_text}%&7)"
+		if arg-1 is "unfreezeall":
+			if size of {fplayers::*} is 0:
+				send "%{@p}%Ни один игрок не заморожен!"
+				stop
+			loop {fplayers::*}:
+				send "%{@p}%Разморозили &6%loop-value%&7!"
+				set {frozen::%loop-value%} to false
+				remove loop-value from {fplayers::*}
+
+on tab complete of "/freeze":
+	set tab completions for position 1 to "toggle", "unfreezeall", "list", "enable", "disable"
+	if tab arg-1 is "toggle":
+		set tab completions for position 2 to all players
+	if tab arg-1 is "enable":
+		loop all players:
+			{fplayers::*} don't contain loop-player
+			add loop-player to {_comp::*}
+		set tab completions for position 2 to {_comp::*}
+	if tab arg-1 is "disable":
+		set tab completions for position 2 to {fplayers::*}
+		
+
+on leave:
+	{frozen::%player%} is true
+	set {frozen::%player%} to false
+	remove player from {fplayers::*} 
+	send "%{@p}%Замороженный Вами игрок &6%player%&7 вышел и разморозился." to {frozen.who.%player%}
+
+on player move:
+	if {frozen::%player%} is true:
+		cancel the event
+
+on block break:
+	if {frozen::%player%} is true:
+		cancel the event
